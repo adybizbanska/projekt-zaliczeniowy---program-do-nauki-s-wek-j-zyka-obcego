@@ -1,0 +1,70 @@
+import json
+import os
+from datetime import datetime, timedelta
+
+# Słownik przechowujący dane użytkownika
+users = {}
+
+def create_account(username, password):
+    """ Tworzy konto użytkownika """
+    users[username] = {"password": password, "words": {}, "log": []}
+
+def login(username, password):
+    """ Logowanie użytkownika """
+    if username in users and users[username]["password"] == password:
+        return True
+    return False
+
+def import_words(username, filepath):
+    """ Importowanie słów z pliku do słownika użytkownika """
+    with open(filepath, "r") as file:
+        words = json.load(file)
+    users[username]["words"] = words
+
+def quiz(username):
+    """ Przepytanie użytkownika z wiedzy zawartej w słowniku """
+    score = 0
+    for word, definition in users[username]["words"].items():
+        guess = input(f"Jakie jest znaczenie słowa {word}? ")
+    if guess == definition:
+        print("Odpowiedź prawidłowa!")
+        score += 1
+    else:
+        print(f"Odpowiedź nieprawidłowa. Prawidłowe znaczenie: {definition}")
+    return score
+
+def update_log(username, score):
+    """ Aktualizacja logu użytkownika """
+    date = datetime.now().strftime("%Y-%m-%d")
+    repeat_in = 7 - (score / len(words_to_repeat)) * 7
+    users[username]["log"].append({"date": date, "score": score, "total": len(words_to_repeat), "repeat_in": repeat_in})
+    with open(f"{username}_log.json", "w") as file:
+        json.dump(users[username]["log"], file)
+
+def repeat_quiz(username):
+    """ Importowanie logu z poprzedniej sesji i odpytywanie użytkownika z zaplanowanej powtórki """
+    with open(f"{username}_log.json", "r") as file:
+        log = json.load(file)
+    # filtrowanie słów do powtórzenia
+    words_to_repeat = {}
+    for entry in log:
+        if entry["date"] == datetime.now().strftime("%Y-%m-%d"):
+            continue
+        for i in range(entry["total"]):
+            if entry["score"] <= i < entry["total"]:
+                words_to_repeat.update({list(users[username]["words"].keys())[i]: list(users[username]["words"].values())[i]})
+    # odpytywanie użytkownika
+    score = 0
+    for word, definition in words_to_repeat.items():
+        guess = input(f"Jakie jest znaczenie słowa {word}? ")
+    if guess == definition:
+        print("Odpowiedź prawidłowa!")
+        score += 1
+    else:
+        print(f"Odpowiedź nieprawidłowa. Prawidłowe znaczenie: {definition}")
+   # wyliczanie za ile dni należy odbyć powtórkę
+    if score == len(words_to_repeat):
+        print("Gratulacje! Nie ma potrzeby powtarzania słówek.")
+    else:
+        repeat_in = 7 - (score / len(words_to_repeat)) * 7
+        print(f"Zalecana powtórka za {repeat_in} dni.")
